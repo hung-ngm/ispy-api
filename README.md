@@ -4,6 +4,8 @@ This FastAPI application takes an image as input, identifies the main color of a
 
 ## Setup
 
+### Local Setup
+
 1. Clone this repository.
 
 2. Install the required packages:
@@ -11,7 +13,7 @@ This FastAPI application takes an image as input, identifies the main color of a
    pip install -r requirements.txt
    ```
 
-3. Set up your OpenAI API and LMNT API key as an environment variable:
+3. Set up your OpenAI API and LMNT API key as environment variables:
    ```
    export OPENAI_API_KEY=your_api_key_here
    export LMNT_API_KEY=your_api_key_here
@@ -21,6 +23,17 @@ This FastAPI application takes an image as input, identifies the main color of a
    ```
    uvicorn main:app --reload
    ```
+
+### Docker Setup
+
+1. Clone this repository.
+
+2. Build and run the Docker container:
+   ```
+   docker-compose up --build
+   ```
+
+   This will start the FastAPI application on http://localhost:8000.
 
 ## Usage
 
