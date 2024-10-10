@@ -1,0 +1,23 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual Environment
+venv/
+env/
+.env
+
+# FastAPI
+.pytest_cache/
+
+# IDE
+.vscode/
+.idea/
+
+# Temporary files
+temp_audio.mp3
+
+# OS generated files
+.DS_Store
+Thumbs.db
