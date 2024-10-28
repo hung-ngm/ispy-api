@@ -7,6 +7,8 @@ import requests
 import asyncio
 from lmnt.api import Speech
 from dotenv import load_dotenv
+import numpy as np
+from PIL import Image
 
 load_dotenv()
 
@@ -57,34 +59,67 @@ async def generate_audio_with_lmnt(text):
         synthesis = await speech.synthesize(text, 'lily')
     return synthesis['audio']
 
+# @app.post("/process-image/")
+# async def process_image(request: Request):
+#     # Read the raw bytes from the request body
+#     image_bytes = await request.body()
+
+#     # Encode the image to base64
+#     base64_image = base64.b64encode(image_bytes).decode('utf-8')
+    
+#     # Process image with OpenAI
+#     color_name = process_image_with_openai(base64_image)
+
+#     print(f"Color name is: {color_name}")
+
+ 
+#     return color_name
+
 @app.post("/process-image/")
 async def process_image(request: Request):
     # Read the raw bytes from the request body
     image_bytes = await request.body()
-
-    # Encode the image to base64
-    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+    
+    # Convert bytes to PIL Image for preprocessing
+    image = Image.open(io.BytesIO(image_bytes))
+    
+    # Convert image to numpy array for processing
+    image_array = np.array(image)
+    
+    # Calculate the mean values for each channel
+    mean_r = np.mean(image_array[:, :, 0])
+    mean_g = np.mean(image_array[:, :, 1])
+    mean_b = np.mean(image_array[:, :, 2])
+    
+    # Calculate the overall mean of all channels
+    target_mean = np.mean([mean_r, mean_g, mean_b])
+    
+    # Calculate adjustment factors
+    r_factor = target_mean / mean_r if mean_r > 0 else 1
+    g_factor = target_mean / mean_g if mean_g > 0 else 1
+    b_factor = target_mean / mean_b if mean_b > 0 else 1
+    
+    # Apply adjustments with clipping to prevent overflow
+    image_array[:, :, 0] = np.clip(image_array[:, :, 0] * r_factor, 0, 255)
+    image_array[:, :, 1] = np.clip(image_array[:, :, 1] * g_factor, 0, 255)
+    image_array[:, :, 2] = np.clip(image_array[:, :, 2] * b_factor, 0, 255)
+    
+    # Convert back to PIL Image
+    processed_image = Image.fromarray(image_array.astype('uint8'))
+    
+    # Convert processed image back to bytes for OpenAI API
+    img_byte_arr = io.BytesIO()
+    processed_image.save(img_byte_arr, format='JPEG')
+    img_byte_arr = img_byte_arr.getvalue()
+    
+    # Encode the processed image to base64
+    base64_image = base64.b64encode(img_byte_arr).decode('utf-8')
     
     # Process image with OpenAI
     color_name = process_image_with_openai(base64_image)
 
     print(f"Color name is: {color_name}")
+    
+    return color_name
 
-    # Generate audio with LMNT
-    audio_data = await generate_audio_with_lmnt(color_name)
 
-    # Save audio data to a temporary file
-    with open("temp_audio.mp3", "wb") as audio_file:
-        audio_file.write(audio_data)
-
-    # Return the audio file
-    # return FileResponse("temp_audio.mp3", media_type="audio/mpeg", filename="color_name.mp3")
-    return FileResponse(
-        "temp_audio.mp3",
-        media_type="audio/mpeg",
-        filename="color_name.mp3",
-        headers={
-            "Accept-Ranges": "bytes",
-            "Content-Disposition": "attachment; filename=color_name.mp3"
-        }
-    )

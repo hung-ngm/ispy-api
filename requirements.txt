@@ -4,3 +4,5 @@ python-multipart
 requests
 lmnt
 python-dotenv
+numpy
+pillow
