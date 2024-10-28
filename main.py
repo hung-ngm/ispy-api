@@ -1,7 +1,7 @@
 import base64
 import io
 import os
-from fastapi import FastAPI, File, UploadFile
+from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
 import requests
 import asyncio
@@ -58,13 +58,17 @@ async def generate_audio_with_lmnt(text):
     return synthesis['audio']
 
 @app.post("/process-image/")
-async def process_image(file: UploadFile = File(...)):
-    # Read and encode the uploaded image
-    contents = await file.read()
-    base64_image = encode_image(io.BytesIO(contents))
+async def process_image(request: Request):
+    # Read the raw bytes from the request body
+    image_bytes = await request.body()
 
+    # Encode the image to base64
+    base64_image = base64.b64encode(image_bytes).decode('utf-8')
+    
     # Process image with OpenAI
     color_name = process_image_with_openai(base64_image)
+
+    print(f"Color name is: {color_name}")
 
     # Generate audio with LMNT
     audio_data = await generate_audio_with_lmnt(color_name)
@@ -74,4 +78,13 @@ async def process_image(file: UploadFile = File(...)):
         audio_file.write(audio_data)
 
     # Return the audio file
-    return FileResponse("temp_audio.mp3", media_type="audio/mpeg", filename="color_name.mp3")
+    # return FileResponse("temp_audio.mp3", media_type="audio/mpeg", filename="color_name.mp3")
+    return FileResponse(
+        "temp_audio.mp3",
+        media_type="audio/mpeg",
+        filename="color_name.mp3",
+        headers={
+            "Accept-Ranges": "bytes",
+            "Content-Disposition": "attachment; filename=color_name.mp3"
+        }
+    )
