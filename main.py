@@ -3,6 +3,7 @@ import io
 import os
 from fastapi import FastAPI, Request
 from fastapi.responses import FileResponse
+from fastapi.middleware.cors import CORSMiddleware
 import requests
 import numpy as np
 from PIL import Image
@@ -11,6 +12,14 @@ from dotenv import load_dotenv
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust as needed
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 # OpenAI API Key
 OPENAI_API_KEY = os.getenv("OPENAI_API_KEY")
@@ -139,28 +148,30 @@ async def process_image(request: Request):
     
     return {"color_name": color_name}
 
-@app.post("/compare-image/")
-async def compare_image(request: Request):
-    # Read the JSON payload from the request
-    data = await request.json()
-    color_name = data['color']
-    base64_image = data['image']
+@app.post("/compare-image/{color}")
+async def compare_image(color: str, request: Request):
+    try:
+        # Read the raw bytes from the request body
+        image_bytes = await request.body()
+        
+        # Preprocess the image (assuming you have this function)
+        processed_image = preprocess_image(image_bytes)
 
-    # Decode base64 image to bytes
-    image_bytes = base64.b64decode(base64_image)
+        # Convert processed image to bytes
+        img_byte_arr = io.BytesIO()
+        processed_image.save(img_byte_arr, format='JPEG')
+        processed_image_bytes = img_byte_arr.getvalue()
 
-    # Preprocess the image
-    processed_image = preprocess_image(image_bytes)
+        # Encode the processed image to base64 for OpenAI API
+        base64_processed_image = base64.b64encode(processed_image_bytes).decode('utf-8')
 
-    # Convert processed image to bytes
-    img_byte_arr = io.BytesIO()
-    processed_image.save(img_byte_arr, format='JPEG')
-    processed_image_bytes = img_byte_arr.getvalue()
-    base64_processed_image = base64.b64encode(processed_image_bytes).decode('utf-8')
+        # Compare the provided color with the image using OpenAI API
+        result = compare_color_with_image(color, base64_processed_image)
 
-    # Compare the provided color with the image using OpenAI API
-    result = compare_color_with_image(color_name, base64_processed_image)
+        print(f"Comparison result: {result}")
 
-    print(f"Comparison result: {result}")
+        return {"result": result}
 
-    return {"result": result}
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": str(e)}
