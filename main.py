@@ -85,47 +85,51 @@ def process_image_with_openai(base64_image):
     }
 
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+    print(f"response: {response}")
     return response.json()['choices'][0]['message']['content'].strip()
 
 
 def compare_color_with_image(color_name, base64_image):
-    headers = {
-        "Content-Type": "application/json",
-        "Authorization": f"Bearer {OPENAI_API_KEY}"
-    }
+    try:
+        headers = {
+            "Content-Type": "application/json",
+            "Authorization": f"Bearer {OPENAI_API_KEY}"
+        }
 
-    prompt = f"""I will provide you with a color name and an image. The image contains one main object. 
-    The color name is '{color_name}'. Your task is to analyze the main color of the object in the image and compare it with the provided color name. 
-    There are three possible cases:
-    1. **Exactly Same Color**: If the color of the object in the image is exactly the same as the provided color name, output '2 images have exactly same colour with colour X', where X is the color name.
-    2. **Nearly Same Color**: If the colors are close (e.g., cyan and turquoise), output '2 images have nearly same color. First image has X color whereas Second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.
-    3. **Different Color**: If the colors are not close, output '2 images have different colour. First image has X color whereas second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.
-    Please analyze the image and provide the appropriate response according to the cases above."""
-
-    payload = {
-        "model": "gpt-4o-mini",
-        "messages": [
-            {
-                "role": "user",
-                "content": [
-                    {
-                        "type": "text",
-                        "text": prompt
-                    },
-                    {
-                        "type": "image",
-                        "image": {
-                            "url": f"data:image/jpeg;base64,{base64_image}"
+        payload = {
+            "model": "gpt-4o-mini",
+            "messages": [
+                {
+                    "role": "user",
+                    "content": [
+                        {
+                            "type": "text",
+                            "text": "I will provide you with a color name and an image. The image contains one main object. " + \
+                                    "The color name is " + color_name + ". Your task is to analyze the main color of the object in the image and compare it with the provided color name. " + \
+                                    "There are three possible cases: " + \
+                                    "1. **Exactly Same Color**: If the color of the object in the image is exactly the same as the provided color name, output 2 images have exactly same colour with colour X, where X is the color name. " + \
+                                    "2. **Nearly Same Color**: If the colors are close (e.g., cyan and turquoise), output 2 images have nearly same color. First image has X color whereas Second image has Y color, where X is the provided color name and Y is the actual color of the object in the image. " + \
+                                    "3. **Different Color**: If the colors are not close, output 2 images have different colour. First image has X color whereas second image has Y color, where X is the provided color name and Y is the actual color of the object in the image. " + \
+                                    "Please analyze the image and provide the appropriate response according to the cases above."
+                        },
+                        {
+                            "type": "image_url",
+                            "image_url": {
+                                "url": f"data:image/jpeg;base64,{base64_image}"
+                            }
                         }
-                    }
-                ]
-            }
-        ],
-        "max_tokens": 1000
-    }
+                    ]
+                }
+            ],
+            "max_tokens": 500
+        }
 
-    response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    return response.json()['choices'][0]['message']['content'].strip()
+        response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
+        print(f"response: {response}")
+        return response.json()['choices'][0]['message']['content'].strip()
+    except Exception as e:
+        print(f"An error occurred: {e}")
+        return {"error": str(e)} 
 
 @app.post("/process-image/")
 async def process_image(request: Request):
@@ -156,6 +160,13 @@ async def compare_image(color: str, request: Request):
     try:
         # Read the raw bytes from the request body
         image_bytes = await request.body()
+
+          # Debug: Check if image_bytes is empty or None
+        if not image_bytes:
+            print("Debug: Received empty image_bytes from request.")
+            return {"error": "No image data received in request body."}
+        else:
+            print(f"Debug: Received image_bytes of length {len(image_bytes)}")
         
         # Preprocess the image (assuming you have this function)
         processed_image = preprocess_image(image_bytes)
@@ -165,8 +176,22 @@ async def compare_image(color: str, request: Request):
         processed_image.save(img_byte_arr, format='JPEG')
         processed_image_bytes = img_byte_arr.getvalue()
 
+           # Debug: Check if processed_image_bytes is empty or None
+        if not processed_image_bytes:
+            print("Debug: Processed image bytes are empty.")
+            return {"error": "Failed to process image."}
+        else:
+            print(f"Debug: Processed image_bytes of length {len(processed_image_bytes)}")
+
         # Encode the processed image to base64 for OpenAI API
         base64_processed_image = base64.b64encode(processed_image_bytes).decode('utf-8')
+
+            # Debug: Check if base64_processed_image is empty or None
+        if not base64_processed_image:
+            print("Debug: Base64 encoded processed image is empty.")
+            return {"error": "Failed to encode image to base64."}
+        else:
+            print(f"Debug: base64_processed_image length {len(base64_processed_image)}")
 
         # Compare the provided color with the image using OpenAI API
         result = compare_color_with_image(color, base64_processed_image)
