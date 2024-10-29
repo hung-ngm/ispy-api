@@ -5,4 +5,4 @@ requests
 lmnt
 python-dotenv
 numpy
-pillow
+Pillow
