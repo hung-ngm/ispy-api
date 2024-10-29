@@ -123,12 +123,11 @@ def compare_color_with_image(color_name, base64_image):
                 ]
             }
         ],
-        "max_tokens": 500
+        "max_tokens": 1000
     }
 
     response = requests.post("https://api.openai.com/v1/chat/completions", headers=headers, json=payload)
-    response_json = response.json()
-    return response_json['choices'][0]['message']['content'].strip()
+    return response.json()['choices'][0]['message']['content'].strip()
 
 @app.post("/process-image/")
 async def process_image(request: Request):
