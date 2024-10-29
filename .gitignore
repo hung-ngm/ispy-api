@@ -21,3 +21,5 @@ temp_audio.mp3
 # OS generated files
 .DS_Store
 Thumbs.db
+
+*.jpg
