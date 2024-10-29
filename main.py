@@ -94,15 +94,13 @@ def compare_color_with_image(color_name, base64_image):
         "Authorization": f"Bearer {OPENAI_API_KEY}"
     }
 
-    prompt = (
-        f"I will provide you with a color name and an image. The image contains one main object. "
-        f"The color name is '{color_name}'. Your task is to analyze the main color of the object in the image and compare it with the provided color name. "
-        "There are three possible cases:\n"
-        "1. **Exactly Same Color**: If the color of the object in the image is exactly the same as the provided color name, output '2 images have exactly same colour with colour X', where X is the color name.\n"
-        "2. **Nearly Same Color**: If the colors are close (e.g., cyan and turquoise), output '2 images have nearly same color. First image has X color whereas Second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.\n"
-        "3. **Different Color**: If the colors are not close, output '2 images have different colour. First image has X color whereas second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.\n"
-        "Please analyze the image and provide the appropriate response according to the cases above."
-    )
+    prompt = f"""I will provide you with a color name and an image. The image contains one main object. 
+    The color name is '{color_name}'. Your task is to analyze the main color of the object in the image and compare it with the provided color name. 
+    There are three possible cases:
+    1. **Exactly Same Color**: If the color of the object in the image is exactly the same as the provided color name, output '2 images have exactly same colour with colour X', where X is the color name.
+    2. **Nearly Same Color**: If the colors are close (e.g., cyan and turquoise), output '2 images have nearly same color. First image has X color whereas Second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.
+    3. **Different Color**: If the colors are not close, output '2 images have different colour. First image has X color whereas second image has Y color', where X is the provided color name and Y is the actual color of the object in the image.
+    Please analyze the image and provide the appropriate response according to the cases above."""
 
     payload = {
         "model": "gpt-4o-mini",
